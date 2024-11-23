@@ -3,10 +3,26 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionContext } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import { Link } from "@/components/ui/link";
+
+interface Link {
+  id: string;
+  title: string;
+  created_at: string;
+  password: string | null;
+}
 
 const Index = () => {
   const { session } = useSessionContext();
@@ -18,12 +34,19 @@ const Index = () => {
       const { data, error } = await supabase
         .from("links")
         .select("*")
-        .eq("user_id", session?.user?.id);
+        .eq("user_id", session?.user?.id)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as Link[];
     },
     enabled: !!session?.user?.id,
   });
+
+  const copyShareLink = (linkId: string) => {
+    const shareUrl = `${window.location.origin}/send/${linkId}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied to clipboard!");
+  };
 
   if (!session) {
     return (
@@ -56,24 +79,60 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {links?.map((link) => (
-          <Card key={link.id} className="p-6">
-            <h2 className="text-xl font-semibold mb-2">{link.title}</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Created on {new Date(link.created_at).toLocaleDateString()}
-            </p>
-            <div className="space-x-2">
-              <Button onClick={() => navigate(`/wall/${link.id}`)}>
-                View Wall
-              </Button>
-              <Button variant="outline" onClick={() => navigate(`/send/${link.id}`)}>
-                Share Link
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {links && links.length > 0 ? (
+        <Card className="p-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {links.map((link) => (
+                <TableRow key={link.id}>
+                  <TableCell className="font-medium">{link.title}</TableCell>
+                  <TableCell>
+                    {new Date(link.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {link.password ? "Password Protected" : "Public"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/wall/${link.id}`)}
+                      >
+                        View Messages
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyShareLink(link.id)}
+                      >
+                        Copy Share Link
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">
+            You haven't created any message walls yet.
+          </p>
+          <Button onClick={() => navigate("/create")}>
+            Create Your First Wall
+          </Button>
+        </Card>
+      )}
     </div>
   );
 };
