@@ -6,11 +6,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { Textarea } from "@/components/ui/textarea";
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+}
 
 interface Message {
   id: string;
   content: string;
   created_at: string;
+  comments: Comment[];
 }
 
 interface Link {
@@ -25,6 +34,8 @@ const MessageWall = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [commentingOn, setCommentingOn] = useState<string | null>(null);
 
   const { data: link } = useQuery({
     queryKey: ["link", userId],
@@ -43,13 +54,22 @@ const MessageWall = () => {
     queryKey: ["messages", userId, isAuthenticated],
     queryFn: async () => {
       if (!isAuthenticated && link?.password) return [];
-      const { data, error } = await supabase
+      const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
-        .select("*")
+        .select(`
+          *,
+          comments:message_comments(
+            id,
+            content,
+            created_at,
+            user_id
+          )
+        `)
         .eq("link_id", userId)
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Message[];
+      
+      if (messagesError) throw messagesError;
+      return messagesData as Message[];
     },
     enabled: !!userId && (isAuthenticated || !link?.password),
   });
@@ -78,6 +98,27 @@ const MessageWall = () => {
     } else {
       toast.error("Incorrect password");
     }
+  };
+
+  const handleAddComment = async (messageId: string) => {
+    if (!newComment.trim()) return;
+
+    const { error } = await supabase
+      .from("message_comments")
+      .insert({
+        content: newComment.trim(),
+        message_id: messageId,
+        user_id: (await supabase.auth.getSession()).data.session?.user.id
+      });
+
+    if (error) {
+      toast.error("Failed to add comment");
+      return;
+    }
+
+    toast.success("Comment added successfully!");
+    setNewComment("");
+    setCommentingOn(null);
   };
 
   if (link?.password && !isAuthenticated) {
@@ -126,9 +167,65 @@ const MessageWall = () => {
             style={{ "--animation-order": index } as React.CSSProperties}
           >
             <p className="text-lg mb-2">{message.content}</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-4">
               {new Date(message.created_at).toLocaleDateString()}
             </p>
+            
+            {/* Comments section */}
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-semibold mb-2">Comments</h3>
+              <div className="space-y-3">
+                {message.comments?.map((comment) => (
+                  <div key={comment.id} className="bg-muted p-3 rounded-md">
+                    <p className="text-sm">{comment.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(comment.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {isAuthenticated && (
+                <div className="mt-3">
+                  {commentingOn === message.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Write a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm"
+                          onClick={() => handleAddComment(message.id)}
+                        >
+                          Add Comment
+                        </Button>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setCommentingOn(null);
+                            setNewComment("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCommentingOn(message.id)}
+                    >
+                      Add Comment
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </Card>
         ))}
       </div>
