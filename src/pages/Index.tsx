@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Link } from "@/components/ui/link";
 
 interface Link {
   id: string;

@@ -49,14 +49,8 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/send/:userId" 
-                element={
-                  <ProtectedRoute>
-                    <SendMessage />
-                  </ProtectedRoute>
-                } 
-              />
+              {/* Send message route is now public */}
+              <Route path="/send/:userId" element={<SendMessage />} />
             </Routes>
           </BrowserRouter>
         </div>
