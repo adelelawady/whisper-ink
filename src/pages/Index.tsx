@@ -25,6 +25,10 @@ interface Link {
   message_count: number;
 }
 
+interface SupabaseMessage {
+  count: number;
+}
+
 const Index = () => {
   const { session } = useSessionContext();
   const navigate = useNavigate();
@@ -36,12 +40,17 @@ const Index = () => {
         .from("links")
         .select(`
           *,
-          message_count: messages(count)
+          message_count:messages(count)
         `)
         .eq("user_id", session?.user?.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Link[];
+      
+      // Transform the data to match our Link interface
+      return (data || []).map(link => ({
+        ...link,
+        message_count: (link.message_count as SupabaseMessage[])[0]?.count || 0
+      })) as Link[];
     },
     enabled: !!session?.user?.id,
   });
