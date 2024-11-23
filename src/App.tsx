@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import MessageWall from "./pages/MessageWall";
 import SendMessage from "./pages/SendMessage";
+import CreateWall from "./pages/CreateWall";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,14 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route 
+                path="/create" 
+                element={
+                  <ProtectedRoute>
+                    <CreateWall />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/wall/:userId" 
                 element={
