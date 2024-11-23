@@ -15,12 +15,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface Link {
   id: string;
   title: string;
   created_at: string;
   password: string | null;
+  message_count: number;
 }
 
 const Index = () => {
@@ -32,7 +34,10 @@ const Index = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("links")
-        .select("*")
+        .select(`
+          *,
+          message_count: messages(count)
+        `)
         .eq("user_id", session?.user?.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -86,6 +91,7 @@ const Index = () => {
                 <TableHead>Title</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Messages</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -98,6 +104,11 @@ const Index = () => {
                   </TableCell>
                   <TableCell>
                     {link.password ? "Password Protected" : "Public"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {link.message_count} messages
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="space-x-2">
