@@ -1,35 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionContext } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
-interface Link {
-  id: string;
-  title: string;
-  created_at: string;
-}
-
 const Index = () => {
+  const { session } = useSessionContext();
   const navigate = useNavigate();
-  const [session, setSession] = useState(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const { data: links } = useQuery({
     queryKey: ["links", session?.user?.id],
@@ -39,7 +20,7 @@ const Index = () => {
         .select("*")
         .eq("user_id", session?.user?.id);
       if (error) throw error;
-      return data as Link[];
+      return data;
     },
     enabled: !!session?.user?.id,
   });
@@ -53,6 +34,7 @@ const Index = () => {
             supabaseClient={supabase}
             appearance={{ theme: ThemeSupa }}
             providers={[]}
+            redirectTo={window.location.origin}
           />
         </Card>
       </div>
