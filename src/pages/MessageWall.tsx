@@ -169,6 +169,17 @@ const MessageWall = () => {
     toast.success("Comment added successfully!");
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   return (
     <div className="container max-w-4xl mx-auto px-4 py-16">
       <div className="text-center mb-12">
@@ -219,7 +230,7 @@ const MessageWall = () => {
             >
               <p className="text-lg mb-2">{message.content}</p>
               <p className="text-sm text-muted-foreground mb-4">
-                {new Date(message.created_at).toLocaleDateString()}
+                {formatDateTime(message.created_at)}
               </p>
 
               {/* Comments section */}
@@ -239,12 +250,12 @@ const MessageWall = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-medium">
                             User {comment.user_id.slice(0, 6)}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(comment.created_at).toLocaleDateString()}
+                            {formatDateTime(comment.created_at)}
                           </span>
                         </div>
                         <p className="text-sm mt-1">{comment.content}</p>

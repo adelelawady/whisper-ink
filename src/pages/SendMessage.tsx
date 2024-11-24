@@ -102,6 +102,17 @@ const SendMessage = () => {
     }
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   return (
     <div className="container max-w-2xl mx-auto p-4 min-h-[calc(100vh-4rem)]">
       <Card className="p-4 md:p-6 shadow-xl">
@@ -207,7 +218,7 @@ const SendMessage = () => {
                         {msg.content}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {new Date(msg.created_at).toLocaleDateString()}
+                        {formatDateTime(msg.created_at)}
                       </p>
                     </Card>
                   ))}
