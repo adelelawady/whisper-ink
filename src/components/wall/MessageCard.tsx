@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { getAvatarUrl } from "@/lib/utils/avatar";
@@ -9,23 +8,15 @@ import { toast } from "sonner";
 import { useSessionContext } from "@supabase/auth-helpers-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateTime } from "@/lib/utils/date";
+import { CommentList } from "./CommentList";
+import { CommentForm } from "./CommentForm";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface Comment {
   id: string;
@@ -46,46 +37,7 @@ interface MessageCardProps {
 export const MessageCard = ({ id, content, created_at, comments, isWallOwner, wallId }: MessageCardProps) => {
   const { session } = useSessionContext();
   const queryClient = useQueryClient();
-  const [newComment, setNewComment] = useState("");
   const [commentingOn, setCommentingOn] = useState<string | null>(null);
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
-
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-
-    if (!session?.user) {
-      toast.error("You must be logged in to comment");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("message_comments")
-      .insert({
-        content: newComment.trim(),
-        message_id: id,
-        user_id: session.user.id
-      });
-
-    if (error) {
-      toast.error("Failed to add comment");
-      return;
-    }
-
-    setNewComment("");
-    setCommentingOn(null);
-    queryClient.invalidateQueries({ queryKey: ["messages", wallId] });
-    toast.success("Comment added successfully!");
-  };
 
   const handleDeleteMessage = async () => {
     if (!isWallOwner) return;
@@ -151,75 +103,16 @@ export const MessageCard = ({ id, content, created_at, comments, isWallOwner, wa
           )}
         </div>
 
-        <div className="space-y-3">
-          {comments?.map((comment) => (
-            <div key={comment.id} className="flex items-start gap-3 bg-muted p-3 rounded-md">
-              <Avatar className="h-8 w-8">
-                <AvatarImage 
-                  src={getAvatarUrl(comment.user_id)} 
-                  alt="User avatar"
-                  referrerPolicy="no-referrer"
-                />
-                <AvatarFallback>
-                  {comment.user_id ? comment.user_id.slice(0, 2).toUpperCase() : 'AN'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-medium">
-                    User {comment.user_id.slice(0, 6)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateTime(comment.created_at)}
-                  </span>
-                </div>
-                <p className="text-sm mt-1">{comment.content}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <CommentList comments={comments} />
 
         {session && (
           <div className="mt-3">
             {commentingOn === id ? (
-              <div className="space-y-2">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage 
-                      src={getAvatarUrl(session?.user?.id)} 
-                      alt="Your avatar"
-                      referrerPolicy="no-referrer"
-                    />
-                    <AvatarFallback>ME</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <Textarea
-                      placeholder="Write a comment..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button 
-                    size="sm"
-                    onClick={handleAddComment}
-                  >
-                    Add Comment
-                  </Button>
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setCommentingOn(null);
-                      setNewComment("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+              <CommentForm 
+                messageId={id}
+                wallId={wallId}
+                onCancel={() => setCommentingOn(null)}
+              />
             ) : (
               <Button
                 variant="ghost"
