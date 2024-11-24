@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { getBaseUrl } from "@/lib/utils/url";
+import { RecentWalls } from "@/components/ui/recent-walls";
 
 interface Link {
   id: string;
@@ -148,6 +149,10 @@ const Index = () => {
           </Button>
         </Card>
       )}
+
+      <div className="mt-8">
+        <RecentWalls />
+      </div>
     </div>
   );
 };

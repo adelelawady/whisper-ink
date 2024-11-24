@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Share2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getBaseUrl } from "@/lib/utils/url";
+import { recordWallVisit } from "@/components/ui/recent-walls";
 
 interface Comment {
   id: string;
@@ -166,6 +167,17 @@ const MessageWall = () => {
       toast.error("Failed to delete wall");
     }
   };
+
+  // Add this effect to record visits
+  useEffect(() => {
+    if (link) {
+      recordWallVisit(
+        link.id,
+        link.title,
+        !!(link.password && isAuthenticated)
+      );
+    }
+  }, [link, isAuthenticated]);
 
   if (!link) {
     return (
