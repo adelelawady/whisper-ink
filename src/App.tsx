@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import MessageWall from "./pages/MessageWall";
 import SendMessage from "./pages/SendMessage";
 import CreateWall from "./pages/CreateWall";
+import Login from "./pages/Login";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -90,6 +91,8 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
 
   return <>{children}</>;
 };
+const basename = import.meta.env.DEV ? '' : '/whisper-ink';
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -98,11 +101,12 @@ const App = () => (
         <div className="gradient-bg min-h-screen">
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <NavBar />
+          <BrowserRouter basename={basename}>
+          <NavBar />
             <div className="container mx-auto px-4">
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
                 <Route 
                   path="/create" 
                   element={
