@@ -44,9 +44,26 @@ const MessageWall = () => {
   const [commentingOn, setCommentingOn] = useState<string | null>(null);
 
   useEffect(() => {
-    const wallSession = localStorage.getItem(`wall-session-${userId}`);
-    if (wallSession) {
-      setIsAuthenticated(true);
+    const checkAccess = async () => {
+      const wallSession = localStorage.getItem(`wall-session-${userId}`);
+      
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: link } = await supabase
+        .from("links")
+        .select("user_id")
+        .eq("id", userId)
+        .single();
+
+      if (wallSession || (currentSession?.user.id === link?.user_id)) {
+        setIsAuthenticated(true);
+        if (currentSession?.user.id === link?.user_id) {
+          localStorage.setItem(`wall-session-${userId}`, 'true');
+        }
+      }
+    };
+
+    if (userId) {
+      checkAccess();
     }
   }, [userId]);
 
@@ -63,10 +80,10 @@ const MessageWall = () => {
     },
   });
 
-  const { data: messages, isError: messagesError } = useQuery({
+  const { data: messages } = useQuery({
     queryKey: ["messages", userId, isAuthenticated],
     queryFn: async () => {
-      if (link?.password && !isAuthenticated && session?.user?.id !== link?.user_id) {
+      if (link?.password && !isAuthenticated) {
         return null;
       }
       
@@ -85,25 +102,13 @@ const MessageWall = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        throw error;
+        console.error('Error fetching messages:', error);
+        return null;
       }
       return data as Message[];
     },
-    enabled: !!userId,
+    enabled: !!userId && (!!link?.password === false || isAuthenticated),
   });
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (session?.user?.id === link?.user_id) {
-        setIsAuthenticated(true);
-        localStorage.setItem(`wall-session-${userId}`, 'true');
-      }
-    };
-    checkAuth();
-  }, [link, session]);
 
   const shareUrl = `${window.location.origin}/send/${userId}`;
 
@@ -115,22 +120,25 @@ const MessageWall = () => {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data, error } = await supabase.rpc('check_wall_password', {
-      wall_id: userId,
-      wall_password: password
-    });
+    try {
+      const { data: result, error } = await supabase
+        .from('links')
+        .select('password')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
+      if (error) throw error;
+
+      if (result.password === password) {
+        setIsAuthenticated(true);
+        localStorage.setItem(`wall-session-${userId}`, 'true');
+        queryClient.invalidateQueries({ queryKey: ["messages", userId] });
+      } else {
+        toast.error("Incorrect password");
+      }
+    } catch (error) {
+      console.error('Error checking password:', error);
       toast.error("Failed to verify password");
-      return;
-    }
-
-    if (data) {
-      setIsAuthenticated(true);
-      localStorage.setItem(`wall-session-${userId}`, 'true');
-      queryClient.invalidateQueries({ queryKey: ["messages", userId] });
-    } else {
-      toast.error("Incorrect password");
     }
   };
 
