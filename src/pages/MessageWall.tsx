@@ -12,13 +12,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils/avatar";
 import { useSessionContext } from "@supabase/auth-helpers-react";
 import { getBaseUrl } from "@/lib/utils/url";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Trash2, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Comment {
   id: string;
@@ -88,6 +99,8 @@ const MessageWall = () => {
     },
   });
 
+  const isPublicWall = !link?.password;
+
   const { data: messages } = useQuery({
     queryKey: ["messages", userId, isAuthenticated],
     queryFn: async () => {
@@ -95,19 +108,33 @@ const MessageWall = () => {
         return null;
       }
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("messages")
         .select(`
-          *,
-          comments:message_comments (
-            id,
-            content,
-            created_at,
-            user_id
-          )
+          id,
+          content,
+          created_at
         `)
         .eq("link_id", userId)
         .order("created_at", { ascending: false });
+
+      if (session) {
+        query = supabase
+          .from("messages")
+          .select(`
+            *,
+            comments:message_comments (
+              id,
+              content,
+              created_at,
+              user_id
+            )
+          `)
+          .eq("link_id", userId)
+          .order("created_at", { ascending: false });
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching messages:', error);
@@ -115,7 +142,7 @@ const MessageWall = () => {
       }
       return data as Message[];
     },
-    enabled: !!userId && (!!link?.password === false || isAuthenticated),
+    enabled: !!userId && (isPublicWall || isAuthenticated),
   });
 
   const shareUrl = `${getBaseUrl()}/send/${userId}`;
@@ -209,13 +236,68 @@ const MessageWall = () => {
     }
   };
 
+  const handleDeleteWall = async () => {
+    if (!isWallOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from("links")
+        .delete()
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast.success("Wall deleted successfully");
+      navigate("/");
+    } catch (error) {
+      console.error('Error deleting wall:', error);
+      toast.error("Failed to delete wall");
+    }
+  };
+
   return (
     <div className="container max-w-4xl mx-auto px-4 py-16">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">{link?.title}</h1>
-        <p className="text-lg text-muted-foreground mb-6">
-          Share this link to receive anonymous messages
-        </p>
+        <div className="flex flex-col items-center mb-6">
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-4xl font-bold">{link?.title}</h1>
+            {isWallOwner && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Wall</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this wall? This action cannot be undone.
+                      All messages and comments will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteWall}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete Wall
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+          <p className="text-lg text-muted-foreground">
+            Share this link to receive anonymous messages
+          </p>
+        </div>
+
         <div className="flex items-center justify-center gap-4">
           <Input
             value={shareUrl}
@@ -223,6 +305,7 @@ const MessageWall = () => {
             className="max-w-sm bg-white"
           />
           <Button onClick={copyLink} variant="outline">
+            <Share2 className="h-4 w-4 mr-2" />
             Copy Link
           </Button>
         </div>
@@ -285,99 +368,117 @@ const MessageWall = () => {
                 )}
               </div>
 
-              {/* Comments section */}
-              <div className="mt-4 border-t pt-4">
-                <h3 className="text-sm font-semibold mb-2">Comments</h3>
-                <div className="space-y-3">
-                  {message.comments?.map((comment) => (
-                    <div key={comment.id} className="flex items-start gap-3 bg-muted p-3 rounded-md">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage 
-                          src={getAvatarUrl(comment.user_id)} 
-                          alt="User avatar"
-                          referrerPolicy="no-referrer"
-                        />
-                        <AvatarFallback>
-                          {comment.user_id ? comment.user_id.slice(0, 2).toUpperCase() : 'AN'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium">
-                            User {comment.user_id.slice(0, 6)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDateTime(comment.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-sm mt-1">{comment.content}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {isAuthenticated && (
-                  <div className="mt-3">
-                    {commentingOn === message.id ? (
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage 
-                              src={getAvatarUrl(session?.user?.id)} 
-                              alt="Your avatar"
-                              referrerPolicy="no-referrer"
-                            />
-                            <AvatarFallback>ME</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <Textarea
-                              placeholder="Write a comment..."
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              className="min-h-[80px]"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button 
-                            size="sm"
-                            onClick={() => handleAddComment(message.id)}
-                          >
-                            Add Comment
-                          </Button>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setCommentingOn(null);
-                              setNewComment("");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
+              {/* Comments section - Only show for authenticated users */}
+              {session && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-semibold">Comments</h3>
+                    {!session && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setCommentingOn(message.id)}
-                        className="flex items-center gap-2"
+                        onClick={() => navigate('/login')}
                       >
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage 
-                            src={getAvatarUrl(session?.user?.id)} 
-                            alt="Your avatar"
-                            referrerPolicy="no-referrer"
-                          />
-                          <AvatarFallback>ME</AvatarFallback>
-                        </Avatar>
-                        Add Comment
+                        Sign in to view comments
                       </Button>
                     )}
                   </div>
-                )}
-              </div>
+
+                  {session && (
+                    <>
+                      <div className="space-y-3">
+                        {message.comments?.map((comment) => (
+                          <div key={comment.id} className="flex items-start gap-3 bg-muted p-3 rounded-md">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage 
+                                src={getAvatarUrl(comment.user_id)} 
+                                alt="User avatar"
+                                referrerPolicy="no-referrer"
+                              />
+                              <AvatarFallback>
+                                {comment.user_id ? comment.user_id.slice(0, 2).toUpperCase() : 'AN'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-medium">
+                                  User {comment.user_id.slice(0, 6)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDateTime(comment.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-sm mt-1">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {session && isAuthenticated && (
+                        <div className="mt-3">
+                          {commentingOn === message.id ? (
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage 
+                                    src={getAvatarUrl(session?.user?.id)} 
+                                    alt="Your avatar"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <AvatarFallback>ME</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <Textarea
+                                    placeholder="Write a comment..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    className="min-h-[80px]"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button 
+                                  size="sm"
+                                  onClick={() => handleAddComment(message.id)}
+                                >
+                                  Add Comment
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setCommentingOn(null);
+                                    setNewComment("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setCommentingOn(message.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage 
+                                  src={getAvatarUrl(session?.user?.id)} 
+                                  alt="Your avatar"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <AvatarFallback>ME</AvatarFallback>
+                              </Avatar>
+                              Add Comment
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </Card>
           ))}
         </div>
