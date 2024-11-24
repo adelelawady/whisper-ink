@@ -9,7 +9,7 @@ import { MessageCard } from "@/components/wall/MessageCard";
 import { PasswordProtection } from "@/components/wall/PasswordProtection";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Share2 } from "lucide-react";
+import { Trash2, Share2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getBaseUrl } from "@/lib/utils/url";
 import { recordWallVisit } from "@/components/ui/recent-walls";
@@ -91,6 +91,8 @@ const MessageWall = () => {
       return data as Message[];
     },
     enabled: !!userId && (isPublicWall || isAuthenticated),
+    refetchOnWindowFocus: true,
+    staleTime: 1000,
   });
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -179,6 +181,27 @@ const MessageWall = () => {
     }
   }, [link, isAuthenticated]);
 
+  // Add this function to handle send message navigation
+  const handleSendMessage = () => {
+    // If wall is private and user is authenticated, pass the password in the URL
+    if (!isPublicWall && isAuthenticated) {
+      const storedPassword = localStorage.getItem(`wall-password-${userId}`);
+      if (storedPassword) {
+        const encodedPassword = encodeURIComponent(storedPassword);
+        navigate(`/send/${userId}?password=${encodedPassword}`, {
+          state: { fromWall: true }
+        });
+      } else {
+        // If somehow we lost the password, reset auth
+        setIsAuthenticated(false);
+        localStorage.removeItem(`wall-session-${userId}`);
+        toast.error("Please re-enter the wall password");
+      }
+    } else {
+      navigate(`/send/${userId}`);
+    }
+  };
+
   if (!link) {
     return (
       <div className="text-center py-16">
@@ -235,6 +258,10 @@ const MessageWall = () => {
           }} variant="outline">
             <Share2 className="h-4 w-4 mr-2" />
             Copy Link
+          </Button>
+          <Button onClick={handleSendMessage} className="gap-2">
+            <Send className="h-4 w-4" />
+            Send Message
           </Button>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { getBaseUrl } from "@/lib/utils/url";
@@ -60,6 +60,9 @@ const SendMessage = () => {
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const { userId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const passwordFromUrl = searchParams.get('password');
+  const queryClient = useQueryClient();
 
   const { data: link } = useQuery({
     queryKey: ["link", userId],
@@ -90,23 +93,41 @@ const SendMessage = () => {
     enabled: !!userId && !link?.password,
   });
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    if (passwordFromUrl) {
+      setPassword(decodeURIComponent(passwordFromUrl));
+      localStorage.setItem(`wall-password-${userId}`, decodeURIComponent(passwordFromUrl));
+      localStorage.setItem(`wall-session-${userId}`, 'true');
+    }
+  }, [passwordFromUrl, userId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    
+    if (!message.trim()) {
+      toast.error("Message cannot be empty");
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from("messages")
-        .insert([{ content: message, link_id: userId }]);
-      
+        .insert({
+          content: message,
+          link_id: userId,
+        });
+
       if (error) throw error;
 
-      toast.success("Message sent successfully!");
+      await queryClient.invalidateQueries({ 
+        queryKey: ["messages", userId],
+        exact: false 
+      });
+
       setMessage("");
+      toast.success("Message sent successfully!");
       
-      // Only navigate if we have a valid wall session
-      const hasWallSession = localStorage.getItem(`wall-session-${userId}`);
-      if (hasWallSession) {
+      if (passwordFromUrl) {
         navigate(`/wall/${userId}`);
       }
     } catch (error) {
@@ -128,6 +149,7 @@ const SendMessage = () => {
       if (error) throw error;
 
       if (result === true) {
+        localStorage.setItem(`wall-password-${userId}`, password);
         localStorage.setItem(`wall-session-${userId}`, 'true');
         navigate(`/wall/${userId}`);
         toast.success("Password correct! Viewing messages...");
