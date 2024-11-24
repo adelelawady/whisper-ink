@@ -76,7 +76,8 @@ const NavBar = () => {
           >
             Create Wall
           </Button>
-          <div className="flex items-center gap-2">
+          {/* Mobile User Info */}
+          <div className="flex items-center gap-2 md:hidden w-full p-2 rounded-md bg-muted">
             <Avatar className="h-8 w-8">
               <AvatarImage 
                 src={getAvatarUrl(session.user.id)}
@@ -86,7 +87,22 @@ const NavBar = () => {
                 {session.user.email?.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground hidden md:inline">
+            <span className="text-sm text-muted-foreground flex-1 text-left truncate">
+              {session.user.email}
+            </span>
+          </div>
+          {/* Desktop User Info */}
+          <div className="hidden md:flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage 
+                src={getAvatarUrl(session.user.id)}
+                alt={session.user.email || 'User avatar'}
+              />
+              <AvatarFallback>
+                {session.user.email?.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-muted-foreground">
               {session.user.email}
             </span>
           </div>

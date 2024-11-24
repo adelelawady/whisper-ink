@@ -103,29 +103,29 @@ const SendMessage = () => {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-16">
-      <Card className="p-6 shadow-xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+    <div className="container max-w-2xl mx-auto p-4 min-h-[calc(100vh-4rem)]">
+      <Card className="p-4 md:p-6 shadow-xl">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
             Send an Anonymous Message
           </h1>
           {link && (
-            <h2 className="text-xl text-muted-foreground">
+            <h2 className="text-lg md:text-xl text-muted-foreground">
               to {link.title}
             </h2>
           )}
         </div>
 
         <Tabs defaultValue="send" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="send">Send Message</TabsTrigger>
-            <TabsTrigger value="view">View Messages</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6">
+            <TabsTrigger value="send" className="text-sm md:text-base">Send Message</TabsTrigger>
+            <TabsTrigger value="view" className="text-sm md:text-base">View Messages</TabsTrigger>
           </TabsList>
 
           <TabsContent value="send">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               <div className="space-y-2">
-                <label htmlFor="message" className="text-sm font-medium">
+                <label htmlFor="message" className="text-sm font-medium block">
                   Your anonymous message
                 </label>
                 <Textarea
@@ -133,10 +133,10 @@ const SendMessage = () => {
                   placeholder="Type your message here..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-[200px]"
+                  className="min-h-[150px] md:min-h-[200px] resize-none"
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full py-6 text-base">
                 Send Message
               </Button>
             </form>
@@ -148,7 +148,7 @@ const SendMessage = () => {
                 {showPasswordInput ? (
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <label htmlFor="password" className="text-sm font-medium">
+                      <label htmlFor="password" className="text-sm font-medium block">
                         Enter password to view messages
                       </label>
                       <Input
@@ -157,16 +157,18 @@ const SendMessage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter password"
+                        className="py-5"
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <Button type="submit" className="flex-1">
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <Button type="submit" className="flex-1 py-6 text-base">
                         View Messages
                       </Button>
                       <Button 
                         type="button" 
                         variant="outline"
                         onClick={() => setShowPasswordInput(false)}
+                        className="py-6 text-base"
                       >
                         Cancel
                       </Button>
@@ -179,7 +181,7 @@ const SendMessage = () => {
                     </p>
                     <Button 
                       onClick={() => setShowPasswordInput(true)}
-                      className="w-full"
+                      className="w-full py-6 text-base"
                     >
                       Enter Password to View Messages
                     </Button>
@@ -188,11 +190,12 @@ const SendMessage = () => {
               </div>
             ) : messages && messages.length > 0 ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                   <h3 className="text-lg font-semibold">Recent Messages</h3>
                   <Button 
                     variant="outline"
                     onClick={() => navigate(`/wall/${userId}`)}
+                    className="w-full md:w-auto py-6 text-base"
                   >
                     View All Messages
                   </Button>
@@ -200,7 +203,9 @@ const SendMessage = () => {
                 <div className="space-y-4">
                   {messages.map((msg) => (
                     <Card key={msg.id} className="p-4 bg-muted">
-                      <p className="text-sm">{msg.content}</p>
+                      <p className="text-sm md:text-base whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-2">
                         {new Date(msg.created_at).toLocaleDateString()}
                       </p>
@@ -209,7 +214,7 @@ const SendMessage = () => {
                 </div>
               </div>
             ) : (
-              <div className="text-center text-muted-foreground">
+              <div className="text-center py-8 text-muted-foreground">
                 No messages yet
               </div>
             )}
