@@ -70,6 +70,45 @@ export type Database = {
           },
         ]
       }
+      message_comments: {
+        Row: {
+          id: string
+          content: string
+          created_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          content: string
+          created_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          content?: string
+          created_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_comments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -86,7 +125,15 @@ export type Database = {
           id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
