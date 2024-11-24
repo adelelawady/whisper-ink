@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">secret-message</string>
+    <string name="title_activity_main">secret-message</string>
+    <string name="package_name">com.konsol.whisperink</string>
+    <string name="custom_url_scheme">com.konsol.whisperink</string>
+</resources>

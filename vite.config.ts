@@ -6,7 +6,8 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
 
-  base: mode === 'development' ? '/' : '/whisper-ink/',
+  base: mode === 'development' ? '/' : '/whisper-ink',
+  // base: mode === 'development' ? '/' : '/', //android
 
   server: {
     host: "::",
