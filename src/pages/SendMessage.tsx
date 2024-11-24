@@ -9,18 +9,49 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { getBaseUrl } from "@/lib/utils/url";
+import { PasswordProtection } from "@/components/wall/PasswordProtection";
 
-interface Message {
-  id: string;
-  content: string;
-  created_at: string;
-}
+// Split into smaller components for better maintainability
+const MessageForm = ({ message, setMessage, handleSubmit }) => (
+  <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-2">
+      <label htmlFor="message" className="text-sm font-medium block">
+        Your anonymous message
+      </label>
+      <Textarea
+        id="message"
+        placeholder="Type your message here..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        className="min-h-[150px] md:min-h-[200px] resize-none"
+      />
+    </div>
+    <Button type="submit" className="w-full py-6 text-base">
+      Send Message
+    </Button>
+  </form>
+);
 
-interface Link {
-  id: string;
-  title: string;
-  password: string | null;
-}
+const RecentMessages = ({ messages }) => (
+  <div className="space-y-4">
+    {messages.map((msg) => (
+      <Card key={msg.id} className="p-4 bg-muted">
+        <p className="text-sm md:text-base whitespace-pre-wrap break-words">
+          {msg.content}
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }).format(new Date(msg.created_at))}
+        </p>
+      </Card>
+    ))}
+  </div>
+);
 
 const SendMessage = () => {
   const location = useLocation();
@@ -30,7 +61,6 @@ const SendMessage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
 
-  // Fetch wall details
   const { data: link } = useQuery({
     queryKey: ["link", userId],
     queryFn: async () => {
@@ -40,11 +70,10 @@ const SendMessage = () => {
         .eq("id", userId)
         .single();
       if (error) throw error;
-      return data as Link;
+      return data;
     },
   });
 
-  // Fetch messages if wall is public
   const { data: messages } = useQuery({
     queryKey: ["messages", userId],
     queryFn: async () => {
@@ -56,44 +85,52 @@ const SendMessage = () => {
         .order("created_at", { ascending: false })
         .limit(5);
       if (error) throw error;
-      return data as Message[];
+      return data;
     },
     enabled: !!userId && !link?.password,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (!message.trim()) return;
+
+    try {
       const { error } = await supabase
         .from("messages")
         .insert([{ content: message, link_id: userId }]);
       
-      if (error) {
-        toast.error("Failed to send message");
-        return;
-      }
+      if (error) throw error;
 
       toast.success("Message sent successfully!");
       setMessage("");
-      navigate(`/wall/${userId}`);
+      
+      // Only navigate if we have a valid wall session
+      const hasWallSession = localStorage.getItem(`wall-session-${userId}`);
+      if (hasWallSession) {
+        navigate(`/wall/${userId}`);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
     try {
       const { data: result, error } = await supabase
-        .from('links')
-        .select('password')
-        .eq('id', userId)
-        .single();
+        .rpc('check_wall_password', {
+          wall_id: userId,
+          wall_password: password
+        });
 
       if (error) throw error;
 
-      if (result.password === password) {
+      if (result === true) {
         localStorage.setItem(`wall-session-${userId}`, 'true');
         navigate(`/wall/${userId}`);
+        toast.success("Password correct! Viewing messages...");
       } else {
         toast.error("Incorrect password");
       }
@@ -101,17 +138,6 @@ const SendMessage = () => {
       console.error('Error checking password:', error);
       toast.error("Failed to verify password");
     }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
   };
 
   const shareUrl = `${getBaseUrl()}/send/${userId}`;
@@ -132,62 +158,27 @@ const SendMessage = () => {
 
         <Tabs defaultValue="send" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6">
-            <TabsTrigger value="send" className="text-sm md:text-base">Send Message</TabsTrigger>
-            <TabsTrigger value="view" className="text-sm md:text-base">View Messages</TabsTrigger>
+            <TabsTrigger value="send">Send Message</TabsTrigger>
+            <TabsTrigger value="view">View Messages</TabsTrigger>
           </TabsList>
 
           <TabsContent value="send">
-            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="message" className="text-sm font-medium block">
-                  Your anonymous message
-                </label>
-                <Textarea
-                  id="message"
-                  placeholder="Type your message here..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-[150px] md:min-h-[200px] resize-none"
-                />
-              </div>
-              <Button type="submit" className="w-full py-6 text-base">
-                Send Message
-              </Button>
-            </form>
+            <MessageForm 
+              message={message}
+              setMessage={setMessage}
+              handleSubmit={handleSubmit}
+            />
           </TabsContent>
 
           <TabsContent value="view">
             {link?.password ? (
               <div className="space-y-4">
                 {showPasswordInput ? (
-                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <label htmlFor="password" className="text-sm font-medium block">
-                        Enter password to view messages
-                      </label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="py-5"
-                      />
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-2">
-                      <Button type="submit" className="flex-1 py-6 text-base">
-                        View Messages
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => setShowPasswordInput(false)}
-                        className="py-6 text-base"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
+                  <PasswordProtection
+                    password={password}
+                    setPassword={setPassword}
+                    handlePasswordSubmit={handlePasswordSubmit}
+                  />
                 ) : (
                   <div className="text-center space-y-4">
                     <p className="text-muted-foreground">
@@ -214,18 +205,7 @@ const SendMessage = () => {
                     View All Messages
                   </Button>
                 </div>
-                <div className="space-y-4">
-                  {messages.map((msg) => (
-                    <Card key={msg.id} className="p-4 bg-muted">
-                      <p className="text-sm md:text-base whitespace-pre-wrap break-words">
-                        {msg.content}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {formatDateTime(msg.created_at)}
-                      </p>
-                    </Card>
-                  ))}
-                </div>
+                <RecentMessages messages={messages} />
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

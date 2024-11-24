@@ -72,6 +72,7 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       } catch (error) {
         console.error('Error checking wall access:', error);
+        toast.error("Failed to check wall access");
         setIsLoading(false);
       }
     };
