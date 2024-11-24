@@ -57,14 +57,14 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
         const isOwner = session?.user?.id === wall.user_id;
         const hasWallSession = localStorage.getItem(`wall-session-${wallId}`);
 
-        // Allow access if any condition is met
-        if (isPublic || isOwner || hasWallSession) {
+        // Allow access if wall is public or user is owner
+        if (isPublic || isOwner) {
           setIsLoading(false);
           return;
         }
 
-        // Only redirect if it's a private wall and no access conditions are met
-        if (wall.password && !isOwner && !hasWallSession) {
+        // For private walls, require password session
+        if (wall.password && !hasWallSession) {
           navigate(`/send/${wallId}`, { replace: true });
           return;
         }
