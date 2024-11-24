@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils/avatar";
 import { useSessionContext } from "@supabase/auth-helpers-react";
+import { getBaseUrl } from "@/lib/utils/url";
 
 interface Comment {
   id: string;
@@ -110,7 +111,7 @@ const MessageWall = () => {
     enabled: !!userId && (!!link?.password === false || isAuthenticated),
   });
 
-  const shareUrl = `${window.location.origin}/send/${userId}`;
+  const shareUrl = `${getBaseUrl()}/send/${userId}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);

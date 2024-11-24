@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getBaseUrl } from "@/lib/utils/url";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -46,6 +47,9 @@ const Login = () => {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${getBaseUrl()}/`,
+        },
       });
 
       if (signUpError) throw signUpError;

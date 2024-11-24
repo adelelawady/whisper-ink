@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
+import { getBaseUrl } from "@/lib/utils/url";
 
 interface Link {
   id: string;
@@ -43,7 +44,7 @@ const Index = () => {
   });
 
   const copyShareLink = async (id: string) => {
-    const url = `${window.location.origin}/send/${id}`;
+    const url = `${getBaseUrl()}/send/${id}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied to clipboard!");

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { getBaseUrl } from "@/lib/utils/url";
 
 interface Message {
   id: string;
@@ -112,6 +113,8 @@ const SendMessage = () => {
       minute: '2-digit'
     }).format(date);
   };
+
+  const shareUrl = `${getBaseUrl()}/send/${userId}`;
 
   return (
     <div className="container max-w-2xl mx-auto p-4 min-h-[calc(100vh-4rem)]">
