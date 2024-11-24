@@ -7,6 +7,11 @@ import { toast } from "sonner";
 import { WallHeader } from "@/components/wall/WallHeader";
 import { MessageCard } from "@/components/wall/MessageCard";
 import { PasswordProtection } from "@/components/wall/PasswordProtection";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Trash2, Share2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { getBaseUrl } from "@/lib/utils/url";
 
 interface Comment {
   id: string;
@@ -144,6 +149,24 @@ const MessageWall = () => {
 
   const isWallOwner = session?.user?.id === link?.user_id;
 
+  const handleDeleteWall = async () => {
+    try {
+      const { error } = await supabase
+        .from("links")
+        .delete()
+        .eq("id", userId)
+        .eq("user_id", session?.user?.id);
+
+      if (error) throw error;
+
+      toast.success("Wall deleted successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Error deleting wall:", error);
+      toast.error("Failed to delete wall");
+    }
+  };
+
   if (!link) {
     return (
       <div className="text-center py-16">
@@ -154,7 +177,55 @@ const MessageWall = () => {
 
   return (
     <div className="container max-w-4xl mx-auto px-4 py-16">
-      <WallHeader title={link.title} wallId={userId || ''} />
+      <div className="flex flex-col items-center mb-12">
+        <div className="flex items-center gap-4 mb-6">
+          <h1 className="text-4xl font-bold">{link.title}</h1>
+          {isWallOwner && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" className="h-8 w-8">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your wall
+                    and all its messages.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteWall}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete Wall
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+        <p className="text-lg text-muted-foreground">
+          Share this link to receive anonymous messages
+        </p>
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <Input
+            value={`${getBaseUrl()}/send/${userId}`}
+            readOnly
+            className="max-w-sm bg-white"
+          />
+          <Button onClick={() => {
+            navigator.clipboard.writeText(`${getBaseUrl()}/send/${userId}`);
+            toast.success("Link copied to clipboard!");
+          }} variant="outline">
+            <Share2 className="h-4 w-4 mr-2" />
+            Copy Link
+          </Button>
+        </div>
+      </div>
 
       {link.password && !isAuthenticated ? (
         <PasswordProtection 
