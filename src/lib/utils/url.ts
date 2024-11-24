@@ -1,4 +1,5 @@
 export const getBaseUrl = () => {
+  const origin = window.location.origin;
   const basename = import.meta.env.DEV ? '' : '/whisper-ink';
-  return `${window.location.origin}${basename}`;
+  return `${origin}${basename}/#`;
 }; 

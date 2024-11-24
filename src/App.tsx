@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SessionContextProvider, useSessionContext } from '@supabase/auth-helpers-react';
 import { supabase } from "@/integrations/supabase/client";
 import NavBar from "./components/NavBar";
@@ -32,7 +32,7 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { session } = useSessionContext();
   const [isLoading, setIsLoading] = useState(true);
-  const wallId = location.pathname.split('/')[2];
+  const wallId = location.pathname.split('/wall/')[1];
 
   useEffect(() => {
     const checkWallAccess = async () => {
@@ -91,46 +91,47 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
 
   return <>{children}</>;
 };
-const basename = import.meta.env.DEV ? '' : '/whisper-ink';
 
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <SessionContextProvider supabaseClient={supabase}>
-      <TooltipProvider>
-        <div className="gradient-bg min-h-screen">
-          <Toaster />
-          <Sonner />
-          <BrowserRouter basename={basename}>
-          <NavBar />
-            <div className="container mx-auto px-4">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route 
-                  path="/create" 
-                  element={
-                    <AuthProtectedRoute>
-                      <CreateWall />
-                    </AuthProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/wall/:userId" 
-                  element={
-                    <WallRoute>
-                      <MessageWall />
-                    </WallRoute>
-                  } 
-                />
-                <Route path="/send/:userId" element={<SendMessage />} />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </div>
-      </TooltipProvider>
-    </SessionContextProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SessionContextProvider supabaseClient={supabase}>
+        <TooltipProvider>
+          <div className="gradient-bg min-h-screen">
+            <Toaster />
+            <Sonner />
+            <HashRouter>
+              <NavBar />
+              <div className="container mx-auto px-4">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route 
+                    path="/create" 
+                    element={
+                      <AuthProtectedRoute>
+                        <CreateWall />
+                      </AuthProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/wall/:userId" 
+                    element={
+                      <WallRoute>
+                        <MessageWall />
+                      </WallRoute>
+                    } 
+                  />
+                  <Route path="/send/:userId" element={<SendMessage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </div>
+            </HashRouter>
+          </div>
+        </TooltipProvider>
+      </SessionContextProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
