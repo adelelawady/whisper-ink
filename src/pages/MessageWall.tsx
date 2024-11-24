@@ -12,6 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils/avatar";
 import { useSessionContext } from "@supabase/auth-helpers-react";
 import { getBaseUrl } from "@/lib/utils/url";
+import { MoreVertical, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Comment {
   id: string;
@@ -181,6 +188,27 @@ const MessageWall = () => {
     }).format(date);
   };
 
+  const isWallOwner = session?.user?.id === link?.user_id;
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!isWallOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      toast.success("Message deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["messages", userId] });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error("Failed to delete message");
+    }
+  };
+
   return (
     <div className="container max-w-4xl mx-auto px-4 py-16">
       <div className="text-center mb-12">
@@ -229,10 +257,33 @@ const MessageWall = () => {
               className="p-6 message-card"
               style={{ "--animation-order": index } as React.CSSProperties}
             >
-              <p className="text-lg mb-2">{message.content}</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                {formatDateTime(message.created_at)}
-              </p>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <p className="text-lg mb-2">{message.content}</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {formatDateTime(message.created_at)}
+                  </p>
+                </div>
+                {isWallOwner && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Message
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
 
               {/* Comments section */}
               <div className="mt-4 border-t pt-4">
