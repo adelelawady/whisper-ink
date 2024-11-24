@@ -37,30 +37,6 @@ const MessageWall = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      const wallSession = localStorage.getItem(`wall-session-${userId}`);
-      
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      const { data: link } = await supabase
-        .from("links")
-        .select("user_id")
-        .eq("id", userId)
-        .single();
-
-      if (wallSession || (currentSession?.user.id === link?.user_id)) {
-        setIsAuthenticated(true);
-        if (currentSession?.user.id === link?.user_id) {
-          localStorage.setItem(`wall-session-${userId}`, 'true');
-        }
-      }
-    };
-
-    if (userId) {
-      checkAccess();
-    }
-  }, [userId]);
-
   const { data: link } = useQuery({
     queryKey: ["link", userId],
     queryFn: async () => {
@@ -79,32 +55,33 @@ const MessageWall = () => {
   const { data: messages } = useQuery({
     queryKey: ["messages", userId, isAuthenticated],
     queryFn: async () => {
-      if (link?.password && !isAuthenticated) {
+      if (!userId) return null;
+      
+      // Don't try to fetch messages if wall is private and not authenticated
+      if (!isPublicWall && !isAuthenticated) {
         return null;
       }
       
-      let query = supabase
-        .from("messages")
-        .select(`
-          id,
-          content,
-          created_at,
-          comments:message_comments (
-            id,
-            content,
-            created_at,
-            user_id
-          )
-        `)
-        .eq("link_id", userId)
-        .order("created_at", { ascending: false });
-
-      const { data, error } = await query;
+      // Get stored password
+      const storedPassword = localStorage.getItem(`wall-password-${userId}`);
+      
+      // If wall is private and we don't have the password, return null
+      if (!isPublicWall && !storedPassword) {
+        setIsAuthenticated(false); // Reset authentication if password is missing
+        return null;
+      }
+      
+      const { data, error } = await supabase
+        .rpc('get_wall_messages', {
+          wall_id: userId,
+          wall_password: storedPassword // Send stored password or null
+        });
 
       if (error) {
         console.error('Error fetching messages:', error);
         return null;
       }
+
       return data as Message[];
     },
     enabled: !!userId && (isPublicWall || isAuthenticated),
@@ -115,17 +92,25 @@ const MessageWall = () => {
     
     try {
       const { data: result, error } = await supabase
-        .from('links')
-        .select('password')
-        .eq('id', userId)
-        .single();
+        .rpc('check_wall_password', {
+          wall_id: userId,
+          wall_password: password
+        });
 
       if (error) throw error;
 
-      if (result.password === password) {
-        setIsAuthenticated(true);
+      if (result === true) {
+        // First store the password, then set authenticated
+        localStorage.setItem(`wall-password-${userId}`, password);
         localStorage.setItem(`wall-session-${userId}`, 'true');
-        queryClient.invalidateQueries({ queryKey: ["messages", userId] });
+        setIsAuthenticated(true);
+        
+        // Force refetch messages with new password
+        await queryClient.invalidateQueries({ 
+          queryKey: ["messages", userId],
+          exact: false
+        });
+        toast.success("Password correct!");
       } else {
         toast.error("Incorrect password");
       }
@@ -134,6 +119,28 @@ const MessageWall = () => {
       toast.error("Failed to verify password");
     }
   };
+
+  // Update the useEffect to handle both session and password
+  useEffect(() => {
+    const checkAccess = async () => {
+      const wallSession = localStorage.getItem(`wall-session-${userId}`);
+      const storedPassword = localStorage.getItem(`wall-password-${userId}`);
+      
+      // Check if we have both session and password for private walls
+      if (wallSession && (!link?.password || storedPassword)) {
+        setIsAuthenticated(true);
+      } else {
+        // Clear stale data if we don't have both
+        localStorage.removeItem(`wall-session-${userId}`);
+        localStorage.removeItem(`wall-password-${userId}`);
+        setIsAuthenticated(false);
+      }
+    };
+
+    if (userId && link) {
+      checkAccess();
+    }
+  }, [userId, link]);
 
   const isWallOwner = session?.user?.id === link?.user_id;
 
