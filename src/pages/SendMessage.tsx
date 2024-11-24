@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface Message {
   id: string;
@@ -23,6 +24,8 @@ interface Link {
 const SendMessage = () => {
   const location = useLocation();
   const [message, setMessage] = useState(location.state?.message || "");
+  const [password, setPassword] = useState("");
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -75,6 +78,30 @@ const SendMessage = () => {
     }
   };
 
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { data: result, error } = await supabase
+        .from('links')
+        .select('password')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (result.password === password) {
+        localStorage.setItem(`wall-session-${userId}`, 'true');
+        navigate(`/wall/${userId}`);
+      } else {
+        toast.error("Incorrect password");
+      }
+    } catch (error) {
+      console.error('Error checking password:', error);
+      toast.error("Failed to verify password");
+    }
+  };
+
   return (
     <div className="container max-w-2xl mx-auto px-4 py-16">
       <Card className="p-6 shadow-xl">
@@ -117,16 +144,47 @@ const SendMessage = () => {
 
           <TabsContent value="view">
             {link?.password ? (
-              <div className="text-center space-y-4">
-                <p className="text-muted-foreground">
-                  This wall is password protected
-                </p>
-                <Button 
-                  onClick={() => navigate(`/wall/${userId}`)}
-                  className="w-full"
-                >
-                  Enter Password to View Messages
-                </Button>
+              <div className="space-y-4">
+                {showPasswordInput ? (
+                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="password" className="text-sm font-medium">
+                        Enter password to view messages
+                      </label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">
+                        View Messages
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => setShowPasswordInput(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <p className="text-muted-foreground">
+                      This wall is password protected
+                    </p>
+                    <Button 
+                      onClick={() => setShowPasswordInput(true)}
+                      className="w-full"
+                    >
+                      Enter Password to View Messages
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : messages && messages.length > 0 ? (
               <div className="space-y-4">
