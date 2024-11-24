@@ -368,101 +368,58 @@ const MessageWall = () => {
                 )}
               </div>
 
-              {/* Comments section - Only show for authenticated users */}
-              {session && (
-                <div className="mt-4 border-t pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-semibold">Comments</h3>
-                    {!session && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate('/login')}
-                      >
-                        Sign in to view comments
-                      </Button>
-                    )}
-                  </div>
+              {/* Comments section */}
+              <div className="mt-4 border-t pt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-semibold">Comments</h3>
+                  {!session && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/login')}
+                      className="text-xs"
+                    >
+                      Sign in to view and add comments
+                    </Button>
+                  )}
+                </div>
 
-                  {session && (
-                    <>
-                      <div className="space-y-3">
-                        {message.comments?.map((comment) => (
-                          <div key={comment.id} className="flex items-start gap-3 bg-muted p-3 rounded-md">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage 
-                                src={getAvatarUrl(comment.user_id)} 
-                                alt="User avatar"
-                                referrerPolicy="no-referrer"
-                              />
-                              <AvatarFallback>
-                                {comment.user_id ? comment.user_id.slice(0, 2).toUpperCase() : 'AN'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-medium">
-                                  User {comment.user_id.slice(0, 6)}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDateTime(comment.created_at)}
-                                </span>
-                              </div>
-                              <p className="text-sm mt-1">{comment.content}</p>
+                {session ? (
+                  <>
+                    <div className="space-y-3">
+                      {message.comments?.map((comment) => (
+                        <div key={comment.id} className="flex items-start gap-3 bg-muted p-3 rounded-md">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage 
+                              src={getAvatarUrl(comment.user_id)} 
+                              alt="User avatar"
+                              referrerPolicy="no-referrer"
+                            />
+                            <AvatarFallback>
+                              {comment.user_id ? comment.user_id.slice(0, 2).toUpperCase() : 'AN'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-medium">
+                                User {comment.user_id.slice(0, 6)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDateTime(comment.created_at)}
+                              </span>
                             </div>
+                            <p className="text-sm mt-1">{comment.content}</p>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                    </div>
 
-                      {session && isAuthenticated && (
-                        <div className="mt-3">
-                          {commentingOn === message.id ? (
-                            <div className="space-y-2">
-                              <div className="flex items-start gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage 
-                                    src={getAvatarUrl(session?.user?.id)} 
-                                    alt="Your avatar"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <AvatarFallback>ME</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <Textarea
-                                    placeholder="Write a comment..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="min-h-[80px]"
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex gap-2 justify-end">
-                                <Button 
-                                  size="sm"
-                                  onClick={() => handleAddComment(message.id)}
-                                >
-                                  Add Comment
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setCommentingOn(null);
-                                    setNewComment("");
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setCommentingOn(message.id)}
-                              className="flex items-center gap-2"
-                            >
-                              <Avatar className="h-6 w-6">
+                    {session && isAuthenticated && (
+                      <div className="mt-3">
+                        {commentingOn === message.id ? (
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-8 w-8">
                                 <AvatarImage 
                                   src={getAvatarUrl(session?.user?.id)} 
                                   alt="Your avatar"
@@ -470,15 +427,62 @@ const MessageWall = () => {
                                 />
                                 <AvatarFallback>ME</AvatarFallback>
                               </Avatar>
-                              Add Comment
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
+                              <div className="flex-1">
+                                <Textarea
+                                  placeholder="Write a comment..."
+                                  value={newComment}
+                                  onChange={(e) => setNewComment(e.target.value)}
+                                  className="min-h-[80px]"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <Button 
+                                size="sm"
+                                onClick={() => handleAddComment(message.id)}
+                              >
+                                Add Comment
+                              </Button>
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setCommentingOn(null);
+                                  setNewComment("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCommentingOn(message.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage 
+                                src={getAvatarUrl(session?.user?.id)} 
+                                alt="Your avatar"
+                                referrerPolicy="no-referrer"
+                              />
+                              <AvatarFallback>ME</AvatarFallback>
+                            </Avatar>
+                            Add Comment
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    <p>Comments are only visible to authenticated users.</p>
+                    <p>Sign in to join the conversation!</p>
+                  </div>
+                )}
+              </div>
             </Card>
           ))}
         </div>
