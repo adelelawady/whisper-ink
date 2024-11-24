@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBaseUrl } from "@/lib/utils/url";
+import { Separator } from "@/components/ui/separator";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,6 +22,53 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
+
+  useEffect(() => {
+    // Load Google Sign-In script
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      window.google?.accounts.id.initialize({
+        client_id: '755269528508-rbciq1l7jnsbij7f1nr1abgfp9ur8id3.apps.googleusercontent.com',
+        callback: handleGoogleResponse,
+      });
+
+      window.google?.accounts.id.renderButton(
+        document.getElementById('google-signin-button'),
+        { 
+          theme: 'outline', 
+          size: 'large',
+          width: '100%',
+          type: 'standard',
+        }
+      );
+    };
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleGoogleResponse = async (response: any) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: response.credential,
+      });
+
+      if (error) throw error;
+
+      toast.success('Successfully signed in with Google!');
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      toast.error('Failed to sign in with Google');
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +134,19 @@ const Login = () => {
           <p className="text-muted-foreground">
             Sign in to manage your message walls
           </p>
+        </div>
+
+        <div id="google-signin-button" className="w-full mb-6"></div>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <Separator />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

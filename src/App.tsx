@@ -12,6 +12,7 @@ import SendMessage from "./pages/SendMessage";
 import CreateWall from "./pages/CreateWall";
 import Login from "./pages/Login";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,43 @@ const WallRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  useEffect(() => {
+    const handleAuthRedirect = async () => {
+      // Check if we have an access token in the URL
+      const hash = window.location.hash;
+      if (hash.includes('access_token=')) {
+        try {
+          // Extract the access token
+          const params = new URLSearchParams(hash.replace('#', '').replace('#', ''));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          const expiresIn = params.get('expires_in');
+
+          if (accessToken) {
+            // Set the session in Supabase
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            });
+
+            if (error) throw error;
+
+            // Clear the URL hash
+            window.history.replaceState(null, '', window.location.pathname);
+
+            // Show success message
+            toast.success('Successfully signed in with Google!');
+          }
+        } catch (error) {
+          console.error('Error handling auth redirect:', error);
+          toast.error('Failed to complete sign in');
+        }
+      }
+    };
+
+    handleAuthRedirect();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <SessionContextProvider supabaseClient={supabase}>
