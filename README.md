@@ -10,6 +10,8 @@ Secret Message is a modern web application that allows users to create and manag
 
 🔴 [Live Demo](https://adelelawady.github.io/whisper-ink/)
 
+[Download Android Apk v1](https://github.com/adelelawady/whisper-ink/releases/download/andoird_v1/Secret-Message.apk/)
+
 ![screencapture-adelelawady-github-io-whisper-ink-2024-11-24-04_36_33](https://github.com/user-attachments/assets/d7ac64bd-6cea-454a-bc45-2f7b86787976)
 
 
@@ -72,6 +74,48 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 npm run dev
 ```
 
+## Android and iOS Platforms
+
+<div style="text-align: center">
+  <img src="https://github.com/user-attachments/assets/7a1bafe2-1de4-4924-b49b-b847893285cd" alt="favicon" width="150"> 
+</div>
+
+### Step 1: Build Your Web App
+
+Before syncing your app to the native platforms, make sure to build your web app for production.
+
+```
+npm run build   `
+```
+This will create a production build of your web app in the dist or build folder.
+
+### Step 2: Sync the Web App with Native Platforms
+
+Once the build is ready, sync the web app with the Android and iOS platforms:
+
+```
+npx cap sync
+```
+
+This will copy the web build into the native projects (android and ios folders).
+
+### Step 3: Open and Build Native Projects
+
+Now, open the Android or iOS project in their respective IDEs to run and build the app.
+
+1.  
+```
+npx cap open android
+```
+
+This will open Android Studio. From there, you can build and run the app on an emulator or a physical device.
+    
+2.
+```
+npx cap open ios
+```
+
+This will open Xcode, where you can build and run the app on an iOS simulator or a physical device.
 
 
 ## Usage
