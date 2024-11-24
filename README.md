@@ -1,6 +1,21 @@
-# Secret Message - Anonymous Message Wall
+<div style="text-align: center">
+  <img src="https://github.com/user-attachments/assets/97464e1f-e0e1-4eba-a2b9-64aeeec8c7a4" alt="favicon" width="30"> <h2>Secret Message - Anonymous Message Wall</h2>
+  
+</div>
 
 Secret Message is a modern web application that allows users to create and manage anonymous message walls. Users can create both public and password-protected walls, share them with others, and receive anonymous messages.
+
+
+💬 [Send Anonymous Message To Me](https://adelelawady.github.io/whisper-ink/#/send/e35432cc-0b61-441c-b13d-29fda226498f)
+
+🔴 [Live Demo](https://adelelawady.github.io/whisper-ink/)
+
+![screencapture-adelelawady-github-io-whisper-ink-2024-11-24-04_36_33](https://github.com/user-attachments/assets/d7ac64bd-6cea-454a-bc45-2f7b86787976)
+
+
+![screencapture-adelelawady-github-io-whisper-ink-2024-11-24-04_37_33](https://github.com/user-attachments/assets/0cb9ebf4-4b5f-4588-95e0-34d322e48959)
+
+
 
 ## Features
 
